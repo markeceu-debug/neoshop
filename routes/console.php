@@ -1,0 +1,15 @@
+<?php
+
+use Illuminate\Foundation\Inspiring;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
+
+
+Artisan::command('inspire', function () {
+    $this->comment(Inspiring::quote());
+})->purpose('Display an inspiring quote');
+
+Schedule::command('stock:release-expired')->everyMinute();
+Schedule::command('stock:check')->hourly()->withoutOverlapping();
+Schedule::command('stock:alert')->hourly()->withoutOverlapping();
+Schedule::command('orders:release')->hourly()->withoutOverlapping();
