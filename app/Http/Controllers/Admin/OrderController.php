@@ -276,6 +276,13 @@ class OrderController extends Controller
             'total_earned'    => (float) $wallet->total_earned + $amount,
         ]);
 
+        // ✅ Creditar a comissão na wallet da plataforma
+$platformWallet = Wallet::forPlatform();
+$platformWallet->creditCommission(
+    amount: (float) $order->commission_amount,
+    orderId: $order->id,
+    description: 'Comissão do pedido ' . $order->number
+);
         WalletTransaction::create([
             'wallet_id'      => $wallet->id,
             'order_id'       => $order->id,

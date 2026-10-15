@@ -10,13 +10,14 @@ class WalletTransaction extends Model
     protected $fillable = [
         'wallet_id', 'order_id', 'withdrawal_id',
         'type', 'amount', 'balance_before', 'balance_after',
-        'description', 'created_by',
+        'description', 'created_by','commission','commission_refund',    // ← adicionar
     ];
 
     protected $casts = [
         'amount'         => 'decimal:2',
         'balance_before' => 'decimal:2',
         'balance_after'  => 'decimal:2',
+
     ];
 
     public function wallet(): BelongsTo

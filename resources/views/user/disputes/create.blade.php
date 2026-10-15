@@ -16,6 +16,26 @@
     </div>
   </div>
 
+  {{-- ✅ Já existe disputa ativa? Bloqueia antes de mostrar o form --}}
+  @if ($order->openDispute())
+    <div class="admin-card" style="padding:20px; border-left:3px solid var(--admin-orange); margin-bottom:20px;">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <i class="bi bi-exclamation-triangle-fill" style="font-size:24px; color:var(--admin-orange);"></i>
+        <div style="font-size:13px; color:var(--admin-text-sec); line-height:1.6;">
+          <strong style="color:var(--admin-text); display:block; margin-bottom:4px;">
+            Reclamação em andamento
+          </strong>
+          Este pedido já possui uma reclamação aberta. Aguarde a resolução antes de abrir outra.
+          <div style="margin-top:10px;">
+            <a href="{{ route('user.disputes.show', $order->openDispute()) }}" class="admin-btn admin-btn-primary" style="font-size:12px;">
+              <i class="bi bi-chat-dots"></i> Ver reclamação
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  @endif
+
   @if ($errors->any())
     <div class="admin-card" style="padding:16px; border-left:3px solid var(--admin-red); margin-bottom:20px;">
       <ul style="margin:0; padding-left:18px; color:var(--admin-red);">
@@ -74,11 +94,11 @@
       </div>
 
       {{-- FOTOS --}}
-      <div>
+      <div id="photoWrap">
         <label style="font-size:11px; color:var(--admin-text-mut); text-transform:uppercase; letter-spacing:1px; font-weight:800;">
           Fotos <span id="photoHint" style="color:var(--admin-text-mut); text-transform:none; letter-spacing:0;">(opcional · máx 5)</span>
         </label>
-        <input type="file" name="attachments[]" multiple
+        <input type="file" name="attachments[]" id="photoInput" multiple
                accept="image/jpeg,image/jpg,image/png,image/webp"
                style="width:100%; margin-top:8px; padding:12px; background:var(--admin-bg); border:1px solid var(--admin-border-strong); color:var(--admin-text); font-family:inherit;">
         <small style="color:var(--admin-text-mut); font-size:11px;">
@@ -102,16 +122,23 @@
 @push('scripts')
 <script>
   function toggleRequired() {
-    const reason = document.getElementById('reason').value;
-    const hint   = document.getElementById('photoHint');
-    const requires = ['defective', 'damaged', 'wrong_product', 'not_as_described'].includes(reason);
+    const reason    = document.getElementById('reason').value;
+    const hint      = document.getElementById('photoHint');
+    const input     = document.getElementById('photoInput');
+    const wrap      = document.getElementById('photoWrap');
+    const label     = wrap.querySelector('label');
+    const requires  = ['defective', 'damaged', 'wrong_product', 'not_as_described'].includes(reason);
 
     if (requires) {
       hint.innerHTML = '<span style="color:var(--admin-orange); font-weight:700;">(obrigatório para este motivo)</span>';
-      document.querySelector('input[name="attachments[]"]').required = true;
+      input.required = true;
+      input.style.borderColor = 'var(--admin-orange)';
+      label.style.color = 'var(--admin-orange)';
     } else {
       hint.textContent = '(opcional · máx 5)';
-      document.querySelector('input[name="attachments[]"]').required = false;
+      input.required = false;
+      input.style.borderColor = 'var(--admin-border-strong)';
+      label.style.color = 'var(--admin-text-mut)';
     }
   }
 

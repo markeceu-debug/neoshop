@@ -8,6 +8,8 @@ use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\Admin\DisputeController;
 use App\Http\Controllers\Admin\PromotionController;
 use App\Http\Controllers\Admin\ProfileController;
+use App\Http\Controllers\Admin\WalletController;
+
 use App\Http\Controllers\Admin\StockMovementController;
 use App\Http\Controllers\Admin\VariantController;
 use App\Http\Controllers\Admin\VariantItemController;
@@ -200,4 +202,7 @@ Route::prefix('disputes')->name('disputes.')->group(function () {
     Route::post('/{dispute}/resolve-partial',[DisputeController::class, 'resolvePartial'])->name('resolve-partial');
 });
 
+
+
+Route::get('carteira', [WalletController::class, 'index'])->name('wallet.index');
      });

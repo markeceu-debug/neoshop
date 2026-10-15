@@ -9,72 +9,72 @@ use Illuminate\Support\Str;
 
 class Order extends Model
 {
-   protected $fillable = [
-    'number',
-    'user_id',
-    'seller_id',
-    'status',
-    'subtotal',
-    'discount',
-    'shipping',
-    'total',
-    'commission_rate',
-    'commission_amount',
-    'seller_net_amount',
-    'customer_name',
-    'customer_email',
-    'customer_phone',
-    'shipping_address',
-    'billing_address',
-    'payment_method',
-    'payment_status',
-    'shipping_method',
-    'tracking_code',
-    'paid_at',
-    'approved_at',
-    'auto_release_at',
-    'released_at',
-    'shipped_at',
-    'delivered_at',
-    'canceled_at',
-    'notes',
-    'courier_name',
-    'courier_phone',
-    'shipping_note',
-     'refunded_at',
-    'refund_amount',
-];
+    protected $fillable = [
+        'number',
+        'user_id',
+        'seller_id',
+        'status',
+        'subtotal',
+        'discount',
+        'shipping',
+        'total',
+        'commission_rate',
+        'commission_amount',
+        'seller_net_amount',
+        'customer_name',
+        'customer_email',
+        'customer_phone',
+        'shipping_address',
+        'billing_address',
+        'payment_method',
+        'payment_status',
+        'shipping_method',
+        'tracking_code',
+        'paid_at',
+        'approved_at',
+        'auto_release_at',
+        'released_at',
+        'shipped_at',
+        'delivered_at',
+        'canceled_at',
+        'notes',
+        'courier_name',
+        'courier_phone',
+        'shipping_note',
+        'refunded_at',
+        'refund_amount',
+    ];
 
-protected $casts = [
-    'subtotal'          => 'decimal:2',
-    'discount'          => 'decimal:2',
-    'shipping'          => 'decimal:2',
-    'total'             => 'decimal:2',
-    'commission_rate'   => 'decimal:2',
-    'commission_amount' => 'decimal:2',
-    'seller_net_amount' => 'decimal:2',
-    'shipping_address'  => 'array',
-    'billing_address'   => 'array',
-    'paid_at'           => 'datetime',
-    'approved_at'       => 'datetime',
-    'auto_release_at'   => 'datetime',
-    'released_at'       => 'datetime',
-    'shipped_at'        => 'datetime',
-    'delivered_at'      => 'datetime',
-    'canceled_at'       => 'datetime',
-    'refunded_at'   => 'datetime',
-    'refund_amount' => 'decimal:2',
-];
+    protected $casts = [
+        'subtotal'          => 'decimal:2',
+        'discount'          => 'decimal:2',
+        'shipping'          => 'decimal:2',
+        'total'             => 'decimal:2',
+        'commission_rate'   => 'decimal:2',
+        'commission_amount' => 'decimal:2',
+        'seller_net_amount' => 'decimal:2',
+        'shipping_address'  => 'array',
+        'billing_address'   => 'array',
+        'paid_at'           => 'datetime',
+        'approved_at'       => 'datetime',
+        'auto_release_at'   => 'datetime',
+        'released_at'       => 'datetime',
+        'shipped_at'        => 'datetime',
+        'delivered_at'      => 'datetime',
+        'canceled_at'       => 'datetime',
+        'refunded_at'   => 'datetime',
+        'refund_amount' => 'decimal:2',
+    ];
 
-public function trackingEvents(): HasMany
-{
-    return $this->hasMany(OrderTrackingEvent::class)->latest();
-}
+    public function trackingEvents(): HasMany
+    {
+        return $this->hasMany(OrderTrackingEvent::class)->latest();
+    }
 
-public function latestTrackingEvent(): ?OrderTrackingEvent
-{
-    return $this->trackingEvents()->first();
-}
+    public function latestTrackingEvent(): ?OrderTrackingEvent
+    {
+        return $this->trackingEvents()->first();
+    }
 
     public function user(): BelongsTo
     {
@@ -85,30 +85,30 @@ public function latestTrackingEvent(): ?OrderTrackingEvent
     {
         return $this->hasMany(OrderItem::class);
     }
-public function seller(): BelongsTo
-{
-    return $this->belongsTo(User::class, 'seller_id');
-}
+    public function seller(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'seller_id');
+    }
 
-public function paymentProofs(): HasMany
-{
-    return $this->hasMany(PaymentProof::class);
-}
+    public function paymentProofs(): HasMany
+    {
+        return $this->hasMany(PaymentProof::class);
+    }
 
-public function approvedProof(): ?PaymentProof
-{
-    return $this->paymentProofs()->where('status', 'approved')->latest()->first();
-}
+    public function approvedProof(): ?PaymentProof
+    {
+        return $this->paymentProofs()->where('status', 'approved')->latest()->first();
+    }
 
-public function disputes(): HasMany
-{
-    return $this->hasMany(Dispute::class);
-}
+    public function disputes(): HasMany
+    {
+        return $this->hasMany(Dispute::class);
+    }
 
-public function openDispute(): ?Dispute
-{
-    return $this->disputes()->whereIn('status', ['open', 'under_review'])->first();
-}
+    public function openDispute(): ?Dispute
+    {
+        return $this->disputes()->whereIn('status', ['open', 'under_review'])->first();
+    }
 
     /* ============ Helpers ============ */
 
@@ -120,27 +120,36 @@ public function openDispute(): ?Dispute
 
         return "NEO-{$year}-{$seq}{$rand}";
     }
-
     public function getStatusLabelAttribute(): string
     {
         return match ($this->status) {
-            'pending'   => 'Aguardando Pagamento',
-            'paid'      => 'Pago',
-            'shipped'   => 'Enviado',
-            'delivered' => 'Entregue',
-            'canceled'  => 'Cancelado',
-            default     => '—',
+            'awaiting_payment'   => 'Aguardando Pagamento',
+            'payment_under_review' => 'Comprovante em Análise',
+            'paid'               => 'Pago',
+            'shipped'            => 'Enviado',
+            'delivered'          => 'Entregue',
+            'completed'          => 'Concluído',          // ← ADICIONAR
+            'disputed'           => 'Em Disputa',
+            'partially_refunded' => 'Reembolso Parcial',
+            'refunded'           => 'Reembolsado',
+            'canceled'           => 'Cancelado',
+            default              => '—',
         };
     }
 
     public function getStatusBadgeAttribute(): string
     {
         $map = [
-            'pending'   => 'admin-badge-warning',
-            'paid'      => 'admin-badge-success',
-            'shipped'   => 'admin-badge-info',
-            'delivered' => 'admin-badge-success',
-            'canceled'  => 'admin-badge-danger',
+            'awaiting_payment'     => 'admin-badge-warning',
+            'payment_under_review' => 'admin-badge-info',
+            'paid'                 => 'admin-badge-success',
+            'shipped'              => 'admin-badge-info',
+            'delivered'            => 'admin-badge-success',
+            'completed'            => 'admin-badge-success',   // ← ADICIONAR
+            'disputed'             => 'admin-badge-danger',
+            'partially_refunded'   => 'admin-badge-warning',
+            'refunded'             => 'admin-badge-muted',
+            'canceled'             => 'admin-badge-danger',
         ];
         return $map[$this->status] ?? 'admin-badge-muted';
     }
@@ -151,29 +160,29 @@ public function openDispute(): ?Dispute
     }
 
     public function latestDispute()
-{
-    return $this->hasOne(Dispute::class)->latestOfMany();
-}
+    {
+        return $this->hasOne(Dispute::class)->latestOfMany();
+    }
 
-public function isDisputed(): bool
-{
-    return $this->status === 'disputed';
-}
+    public function isDisputed(): bool
+    {
+        return $this->status === 'disputed';
+    }
 
-public function isDisputable(): bool
-{
-    // Só pode disputar se foi entregue E está dentro do prazo
-    if ($this->status !== 'delivered') return false;
-    if (! $this->delivered_at) return false;
+    public function isDisputable(): bool
+    {
+        // Só pode disputar se foi entregue E está dentro do prazo
+        if ($this->status !== 'delivered') return false;
+        if (! $this->delivered_at) return false;
 
-    $guaranteeDays = (int) \App\Models\Setting::get('guarantee_days', 7);
+        $guaranteeDays = (int) \App\Models\Setting::get('guarantee_days', 7);
 
-    return $this->delivered_at->copy()->addDays($guaranteeDays)->isFuture();
-}
+        return $this->delivered_at->copy()->addDays($guaranteeDays)->isFuture();
+    }
 
-public function isCancelable(): bool
-{
-    // Cancelamento só antes do envio
-    return in_array($this->status, ['awaiting_payment', 'payment_under_review', 'paid']);
-}
+    public function isCancelable(): bool
+    {
+        // Cancelamento só antes do envio
+        return in_array($this->status, ['awaiting_payment', 'payment_under_review', 'paid']);
+    }
 }

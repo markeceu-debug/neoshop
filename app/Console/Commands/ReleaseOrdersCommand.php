@@ -22,7 +22,7 @@ class ReleaseOrdersCommand extends Command
         $this->info('');
 
         $orders = Order::query()
-            ->where('status', 'delivered')
+            ->whereIn('status', ['delivered', 'partially_refunded'])
             ->whereNotNull('auto_release_at')
             ->where('auto_release_at', '<=', now())
             ->whereDoesntHave('disputes', function ($q) {

@@ -263,7 +263,9 @@
   @php
     $available = $product->available_stock;
     $soldOut   = $product->is_sold_out;
-    $discount  = $product->old_price ? round((1 - $product->price / $product->old_price) * 100) : 0;
+    $discount  = ($product->old_price && $product->old_price > 0)
+        ? round((1 - $product->price / $product->old_price) * 100)
+        : 0;
 
     // -------- Galeria --------
     $galleryImages = collect();
@@ -696,9 +698,7 @@
 
           <div class="related-grid">
             @foreach ($related as $rel)
-              @php
-                $relDiscount = $rel->old_price ? round((1 - $rel->price / $rel->old_price) * 100) : 0;
-                $relUrl = route('product.show', $rel);
+      $relUrl = route('product.show', $rel);
               @endphp
               <div class="product-card">
                 <div class="product-img-wrapper">

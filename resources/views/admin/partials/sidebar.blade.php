@@ -86,6 +86,10 @@
        <ul class="admin-nav-list">
          <li><a href="#" class="admin-nav-link"><i class="bi bi-cash-coin"></i> Transações</a></li>
          <li>
+          <a href="{{ route('admin.wallet.index') }}" class="admin-nav-link {{ request()->routeIs('admin.wallet.*') ? 'active' : '' }}">
+  <i class="bi bi-wallet2"></i>
+  <span>Carteira da Plataforma</span>
+</a>
            <a href="{{ route('admin.withdrawals.index') }}"
              class="admin-nav-link {{ request()->routeIs('admin.withdrawals.*') ? 'active' : '' }}">
              <i class="bi bi-wallet2"></i> Saques

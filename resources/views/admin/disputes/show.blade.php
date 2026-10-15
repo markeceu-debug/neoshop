@@ -19,6 +19,22 @@
     </div>
   </div>
 
+  {{-- ⚠️ Aviso se carteira do vendedor estiver bloqueada --}}
+  @php $wallet = \App\Models\Wallet::forUser($dispute->order->seller_id); @endphp
+  @if ($wallet && $wallet->blocked)
+    <div class="admin-card" style="padding:16px; margin-bottom:20px; border-left:3px solid var(--admin-red); background:rgba(239,68,68,0.06);">
+      <div style="display:flex; gap:12px; align-items:flex-start;">
+        <i class="bi bi-shield-exclamation" style="font-size:22px; color:var(--admin-red);"></i>
+        <div style="font-size:13px; color:var(--admin-text-sec); line-height:1.6;">
+          <strong style="color:var(--admin-red); display:block; margin-bottom:4px;">
+            Carteira do vendedor bloqueada
+          </strong>
+          {{ $wallet->block_reason }}
+        </div>
+      </div>
+    </div>
+  @endif
+
   {{-- STATUS --}}
   @php [$statusCls, $statusLabel] = $dispute->status_badge; @endphp
   <div class="admin-card" style="padding:18px 24px; margin-bottom:20px;">
@@ -90,14 +106,32 @@
 
           <div style="display:flex; flex-direction:column; gap:16px; margin-bottom:24px;">
             @foreach ($dispute->messages as $msg)
-              @php [$badgeCls, $badgeLabel] = $msg->sender_badge; @endphp
+
+              {{-- Mensagem do SISTEMA --}}
+              @if ($msg->sender_role === 'system')
+                <div style="text-align:center; padding:8px 0;">
+                  <span style="display:inline-block; background:var(--admin-bg); border:1px solid var(--admin-border-subtle); color:var(--admin-text-mut); font-size:11px; padding:6px 14px; font-style:italic; max-width:80%;">
+                    <i class="bi bi-info-circle"></i> {{ $msg->message }}
+                  </span>
+                  <div style="font-size:10px; color:var(--admin-text-mut); margin-top:4px;">
+                    {{ $msg->created_at->format('d/m H:i') }}
+                  </div>
+                </div>
+                @continue
+              @endif
+
+              @php
+                [$badgeCls, $badgeLabel] = $msg->sender_badge;
+                $initial = $msg->sender_name ? strtoupper(substr($msg->sender_name, 0, 1)) : '?';
+              @endphp
+
               <div style="display:flex; gap:12px;">
                 <div style="width:36px; height:36px; background:var(--admin-accent); border-radius:50% !important; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; flex-shrink:0;">
-                  {{ strtoupper(substr($msg->sender_name, 0, 1)) }}
+                  {{ $initial }}
                 </div>
                 <div style="flex:1;">
                   <div style="display:flex; gap:8px; align-items:center; margin-bottom:4px; flex-wrap:wrap;">
-                    <strong style="font-size:12px; color:var(--admin-text);">{{ $msg->sender_name }}</strong>
+                    <strong style="font-size:12px; color:var(--admin-text);">{{ $msg->sender_name ?? 'Sistema' }}</strong>
                     <span class="admin-badge {{ $badgeCls }}" style="font-size:10px;">{{ $badgeLabel }}</span>
                     <span style="font-size:11px; color:var(--admin-text-mut);">{{ $msg->created_at->format('d/m H:i') }}</span>
                   </div>
@@ -175,12 +209,23 @@
               <strong style="color:var(--admin-accent-2);">R$ {{ number_format($dispute->order->total, 2, ',', '.') }}</strong>
             </div>
             <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--admin-text-sec);">Comissão</span>
+              <span style="color:var(--admin-text-sec);">R$ {{ number_format($dispute->order->commission_amount, 2, ',', '.') }}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
               <span style="color:var(--admin-text-sec);">Vendedor recebe</span>
               <strong style="color:var(--admin-green);">R$ {{ number_format($dispute->order->seller_net_amount, 2, ',', '.') }}</strong>
             </div>
             <div style="display:flex; justify-content:space-between;">
               <span style="color:var(--admin-text-sec);">Vendedor</span>
               <strong>{{ $dispute->order->seller?->name ?? '—' }}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--admin-text-sec);">Carteira vendedor</span>
+              <strong style="color:{{ $wallet && $wallet->blocked ? 'var(--admin-red)' : 'var(--admin-green)' }};">
+                R$ {{ number_format($wallet->pending_balance ?? 0, 2, ',', '.') }}
+                @if ($wallet && $wallet->blocked) <i class="bi bi-lock-fill"></i> @endif
+              </strong>
             </div>
           </div>
         </div>
@@ -194,21 +239,18 @@
           </div>
           <div class="admin-card-body" style="display:flex; flex-direction:column; gap:12px;">
 
-            {{-- Cliente --}}
             <button type="button" onclick="openResolveModal('buyer')"
                     class="admin-btn admin-btn-primary"
                     style="width:100%; justify-content:center; background:linear-gradient(135deg, var(--admin-green), #16a34a); box-shadow:0 0 20px rgba(34,197,94,0.3);">
               <i class="bi bi-arrow-counterclockwise"></i> Reembolsar Cliente
             </button>
 
-            {{-- Vendedor --}}
             <button type="button" onclick="openResolveModal('seller')"
                     class="admin-btn admin-btn-secondary"
                     style="width:100%; justify-content:center;">
               <i class="bi bi-check-lg"></i> A favor do Vendedor
             </button>
 
-            {{-- Parcial --}}
             <button type="button" onclick="openResolveModal('partial')"
                     class="admin-btn admin-btn-secondary"
                     style="width:100%; justify-content:center;">
@@ -247,7 +289,7 @@
     @foreach (['buyer' => ['Reembolsar Cliente', 'admin-green', 'O valor será devolvido ao cliente e o vendedor perde o pagamento.'],
               'seller' => ['A favor do Vendedor', 'admin-accent', 'O cliente não será reembolsado. O vendedor receberá o pagamento no prazo normal.'],
               'partial' => ['Reembolso Parcial', 'admin-cyan', 'Uma parte do valor será devolvida ao cliente e o restante liberado ao vendedor.']] as $key => $cfg)
-      <div id="resolveModal-{{ $key }}" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(3px); z-index:9999; align-items:center; justify-content:center; padding:20px;">
+      <div id="resolveModal-{{ $key }}" class="resolve-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(3px); z-index:9999; align-items:center; justify-content:center; padding:20px;">
         <div style="background:var(--admin-card); border:1px solid var(--admin-border-strong); width:100%; max-width:520px;">
 
           <div style="display:flex; align-items:center; justify-content:space-between; padding:18px 24px; border-bottom:1px solid var(--admin-border); background:linear-gradient(135deg,var(--admin-sidebar) 0%,rgba(124,92,255,0.06) 100%);">
@@ -259,8 +301,7 @@
             </button>
           </div>
 
-          <form method="POST"
-                action="{{ route('admin.disputes.resolve-' . $key, $dispute) }}">
+          <form method="POST" action="{{ route('admin.disputes.resolve-' . $key, $dispute) }}">
             @csrf
 
             <div style="padding:24px;">
@@ -311,22 +352,25 @@
     const el = document.getElementById('resolveModal-' + key);
     if (el) el.style.display = 'flex';
   }
+
   function closeResolveModal(key) {
     const el = document.getElementById('resolveModal-' + key);
     if (el) el.style.display = 'none';
   }
 
-  // Fecha clicando no overlay
-  document.querySelectorAll('[id^="resolveModal-"]').forEach(function (el) {
-    el.addEventListener('click', function (e) {
+  // Fecha ao clicar fora do modal
+  document.querySelectorAll('.resolve-modal').forEach(function (modal) {
+    modal.addEventListener('click', function (e) {
       if (e.target === this) this.style.display = 'none';
     });
   });
 
-  // ESC fecha
+  // ESC fecha todos
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
-      ['buyer', 'seller', 'partial'].forEach(closeResolveModal);
+      document.querySelectorAll('.resolve-modal').forEach(function (m) {
+        m.style.display = 'none';
+      });
     }
   });
 </script>

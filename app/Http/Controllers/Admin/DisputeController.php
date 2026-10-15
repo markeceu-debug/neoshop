@@ -103,11 +103,14 @@ class DisputeController extends Controller
 
                 // O vendedor perde o valor que estava pendente
                 if ($order->seller_id) {
+                    $this->refundPlatformCommission($order, (float) $order->total);
+
                     $this->revertSellerFunds(
                         $order,
                         'Reembolso ao cliente — disputa #' . $dispute->id
                     );
                 }
+
 
                 // Recalcula seller_net_amount: vendedor fica com o negativo
                 // da comissão (que já foi retida pela plataforma)
@@ -147,7 +150,47 @@ class DisputeController extends Controller
             ->route('admin.disputes.show', $dispute)
             ->with('success', 'Reclamação resolvida a favor do cliente.');
     }
+    /**
+     * Estorna a comissão da plataforma proporcional ao reembolso.
+     *
+     * Exemplo:
+     *   Pedido R$ 200, comissão R$ 20, reembolso R$ 100
+     *   Estorno = 20 * (100 / 200) = R$ 10
+     */
+    private function refundPlatformCommission(Order $order, float $refundAmount): void
+    {
+        $commission = (float) $order->commission_amount;
 
+        if ($commission <= 0 || $refundAmount <= 0) {
+            return;
+        }
+
+        $orderTotal = (float) $order->total;
+
+        if ($orderTotal <= 0) {
+            return;
+        }
+
+        // Proporção do estorno
+        $ratio = min(1, $refundAmount / $orderTotal);
+        $refundCommission = round($commission * $ratio, 2);
+
+        if ($refundCommission <= 0) {
+            return;
+        }
+
+        $platformWallet = Wallet::forPlatform();
+        $platformWallet->debitCommission(
+            amount: $refundCommission,
+            orderId: $order->id,
+            description: sprintf(
+                'Estorno de comissão — disputa #%d (pedido %s, reembolso R$ %s)',
+                $order->id,
+                $order->number,
+                number_format($refundAmount, 2, ',', '.')
+            )
+        );
+    }
     /**
      * Resolve a favor do VENDEDOR (libera o pagamento).
      */
@@ -223,8 +266,10 @@ class DisputeController extends Controller
                 $order  = $dispute->order;
                 $refund = (float) $data['refund_amount'];
 
-                // O vendedor perde a parte do reembolso
                 if ($order->seller_id) {
+                    // ✅ Estorna comissão proporcional
+                    $this->refundPlatformCommission($order, $refund);
+
                     $this->revertSellerFunds(
                         $order,
                         'Reembolso parcial — disputa #' . $dispute->id,
